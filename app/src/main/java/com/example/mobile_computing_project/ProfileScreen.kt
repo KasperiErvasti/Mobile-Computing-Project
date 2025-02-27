@@ -1,10 +1,14 @@
 package com.example.mobile_computing_project
 
+import android.Manifest
+import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Matrix
-import android.hardware.SensorManager
 import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +72,7 @@ import com.example.mobile_computing_project.camera.PhotoBottomSheetContent
 import com.example.mobile_computing_project.sensor.NotificationHelper
 import java.io.File
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -78,8 +83,6 @@ fun ProfileScreen(
     onNavigateToChat: () -> Unit,
     notificationHelper: NotificationHelper
 ) {
-    lateinit var sensorManager: SensorManager
-
     val context = LocalContext.current
     val resolver = context.contentResolver
 
@@ -190,6 +193,7 @@ fun ProfileScreen(
 
             val scope = rememberCoroutineScope()
             val scaffoldState = rememberBottomSheetScaffoldState()
+
             val cameraController = remember {
                 LifecycleCameraController(context).apply {
                     setEnabledUseCases(
@@ -198,110 +202,149 @@ fun ProfileScreen(
                     )
                 }
             }
+
+            val hasCameraPermission by remember {
+                mutableStateOf(
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                )
+            }
+
+            val cameraPermissionResultLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission(),
+                onResult = {}
+            )
+
+
             var flashEffect by remember { mutableStateOf(false) }
 
             val viewModel = viewModel<MainViewModel>()
             val bitmaps by viewModel.bitmaps.collectAsState()
 
-            BottomSheetScaffold(
-                scaffoldState = scaffoldState,
-                sheetPeekHeight = 0.dp,
-                sheetContent = {
-                    PhotoBottomSheetContent(
-                        bitmaps = bitmaps,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
-            ) { padding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-                    CameraPreview(
-                        controller = cameraController,
+            Spacer(modifier = Modifier.size(8.dp))
+
+            if (hasCameraPermission) {
+                BottomSheetScaffold(
+                    scaffoldState = scaffoldState,
+                    sheetPeekHeight = 0.dp,
+                    sheetContent = {
+                        PhotoBottomSheetContent(
+                            bitmaps = bitmaps,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        )
+                    }
+                ) { padding ->
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                    )
-
-                    // Flash effect to notice taking photo
-                    if (flashEffect) {
-                        Box(
+                            .padding(padding)
+                    ) {
+                        CameraPreview(
+                            controller = cameraController,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.5f)) // Semi-transparent black
                         )
-                    }
 
-
-                    IconButton(
-                        onClick = {
-                            switchCamera(cameraController)
-                        },
-                        modifier = Modifier
-                            .offset(16.dp, 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Cameraswitch,
-                            contentDescription = "Switch Camera"
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    scaffoldState.bottomSheetState.expand()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Photo,
-                                "Open Gallery"
+                        // Flash effect to notice taking photo
+                        if (flashEffect) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.5f)) // Semi-transparent black
                             )
                         }
 
+
                         IconButton(
                             onClick = {
-                                takePhoto(
-                                    cameraController = cameraController,
-                                    onPhotoTaken = viewModel::onTakePhoto,
-                                    context = context,
-                                    triggerFlash = {
-                                        flashEffect = true
+                                switchCamera(cameraController)
+                            },
+                            modifier = Modifier
+                                .offset(16.dp, 16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cameraswitch,
+                                contentDescription = "Switch Camera"
+                            )
+                        }
 
-                                        scope.launch {
-                                            delay(100)
-
-                                            flashEffect = false
-                                        }
-
-//                                        CoroutineScope(Dispatchers.Main).launch {
-//                                            delay(300)
-//                                            flashEffect = false
-//                                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        scaffoldState.bottomSheetState.expand()
                                     }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Photo,
+                                    "Open Gallery"
                                 )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PhotoCamera,
-                                "Take photo"
-                            )
+
+                            IconButton(
+                                onClick = {
+                                    takePhoto(
+                                        cameraController = cameraController,
+                                        onPhotoTaken = viewModel::onTakePhoto,
+                                        context = context,
+                                        triggerFlash = {
+                                            flashEffect = true
+
+                                            scope.launch {
+                                                delay(100)
+
+                                                flashEffect = false
+                                            }
+
+                                        }
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoCamera,
+                                    "Take photo"
+                                )
+                            }
+
+
                         }
-
-
                     }
-                }
 
+                }
+            } else {
+                Button(onClick = {
+                    val activity = context as? Activity
+                    // Might not work if this permissions has never been requested before.
+                    // Implement in different way if permissions are not requested on app launch
+                    val isPermanentlyDeclined = activity?.let {
+                        !shouldShowRequestPermissionRationale(it, Manifest.permission.CAMERA)
+                    } ?: false
+
+                    if (isPermanentlyDeclined) {
+                        // Open app settings
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        context.startActivity(intent)
+                    } else {
+                        cameraPermissionResultLauncher.launch(Manifest.permission.CAMERA)
+                    }
+
+                }) {
+                    Text("Enable Camera")
+                }
             }
+
 
         }
     }
@@ -317,13 +360,18 @@ private fun takePhoto(
         ContextCompat.getMainExecutor(context),
         object : OnImageCapturedCallback() {
             override fun onCaptureSuccess(image: ImageProxy) {
-                Log.d("MY_TAG", "onCaptureSuccess reached")
                 super.onCaptureSuccess(image)
 
                 val matrix = Matrix().apply {
                     postRotate(image.imageInfo.rotationDegrees.toFloat())
-//                    postScale(-1f, 1f)
+
+                    // Image is mirrored when taken with front camera
+                    if (cameraController.cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA) {
+                        postScale(-1f, 1f) // mirror image
+                    }
+
                 }
+
                 val rotatedBitmap = Bitmap.createBitmap(
                     image.toBitmap(),
                     0,
@@ -344,7 +392,6 @@ private fun takePhoto(
             override fun onError(exception: ImageCaptureException) {
                 super.onError(exception)
                 Log.e("Camera", "Couldn't take photo due to exception: ", exception)
-                Log.d("MY_TAG", "Couldn't take photo due to exception: ", exception)
             }
         }
     )

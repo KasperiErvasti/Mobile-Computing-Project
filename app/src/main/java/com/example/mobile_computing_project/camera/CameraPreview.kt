@@ -16,7 +16,6 @@ fun CameraPreview(
     AndroidView(
         factory = {
             PreviewView(it).apply {
-//                this.      // TODO: add customization
                 this.controller = controller
                 controller.bindToLifecycle(lifecycleOwner)
             }

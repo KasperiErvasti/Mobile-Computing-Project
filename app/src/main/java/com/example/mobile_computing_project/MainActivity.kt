@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if(!hasRequiredPermissions()) {
+        if (!hasRequiredPermissions()) {
             ActivityCompat.requestPermissions(
                 this, CAMERAX_PERMISSIONS, 0
             )
