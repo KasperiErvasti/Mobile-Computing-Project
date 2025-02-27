@@ -351,7 +351,6 @@ fun ProfileScreen(
                 }
             }
 
-
         }
     }
 }
@@ -437,5 +436,3 @@ private fun pickMedia(
 
     return pickMedia
 }
-
-
