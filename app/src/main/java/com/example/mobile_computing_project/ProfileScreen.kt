@@ -191,6 +191,9 @@ fun ProfileScreen(
                 Text("Enable notifications")
             }
 
+            // following video (https://www.youtube.com/watch?v=12_iKwGIP64) used as
+            // reference for implementing integrated camera
+
             val scope = rememberCoroutineScope()
             val scaffoldState = rememberBottomSheetScaffoldState()
 
@@ -323,6 +326,9 @@ fun ProfileScreen(
                 }
             } else {
                 Button(onClick = {
+                    // following video (https://www.youtube.com/watch?v=D3JCtaK8LSU) used as
+                    // reference for implementing permission handlings
+
                     val activity = context as? Activity
                     // Might not work if this permissions has never been requested before.
                     // Implement in different way if permissions are not requested on app launch
