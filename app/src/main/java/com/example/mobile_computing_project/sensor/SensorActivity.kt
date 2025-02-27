@@ -7,8 +7,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
-import android.util.Log
-import com.example.mobile_computing_project.R
 
 class SensorActivity(private val notificationHelper: NotificationHelper) : Activity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
@@ -22,7 +20,6 @@ class SensorActivity(private val notificationHelper: NotificationHelper) : Activ
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
-        Log.d("MY_TAG", "accuracy")
         return
     }
 

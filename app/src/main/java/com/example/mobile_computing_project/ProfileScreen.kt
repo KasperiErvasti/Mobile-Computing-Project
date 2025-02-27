@@ -68,6 +68,7 @@ import com.example.mobile_computing_project.camera.PhotoBottomSheetContent
 import com.example.mobile_computing_project.sensor.NotificationHelper
 import java.io.File
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -197,6 +198,7 @@ fun ProfileScreen(
                     )
                 }
             }
+            var flashEffect by remember { mutableStateOf(false) }
 
             val viewModel = viewModel<MainViewModel>()
             val bitmaps by viewModel.bitmaps.collectAsState()
@@ -222,6 +224,16 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxSize()
                     )
+
+                    // Flash effect to notice taking photo
+                    if (flashEffect) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f)) // Semi-transparent black
+                        )
+                    }
+
 
                     IconButton(
                         onClick = {
@@ -261,7 +273,21 @@ fun ProfileScreen(
                                 takePhoto(
                                     cameraController = cameraController,
                                     onPhotoTaken = viewModel::onTakePhoto,
-                                    context = context
+                                    context = context,
+                                    triggerFlash = {
+                                        flashEffect = true
+
+                                        scope.launch {
+                                            delay(100)
+
+                                            flashEffect = false
+                                        }
+
+//                                        CoroutineScope(Dispatchers.Main).launch {
+//                                            delay(300)
+//                                            flashEffect = false
+//                                        }
+                                    }
                                 )
                             }
                         ) {
@@ -270,6 +296,8 @@ fun ProfileScreen(
                                 "Take photo"
                             )
                         }
+
+
                     }
                 }
 
@@ -282,12 +310,14 @@ fun ProfileScreen(
 private fun takePhoto(
     cameraController: LifecycleCameraController,
     onPhotoTaken: (Bitmap) -> Unit,
-    context: Context
+    context: Context,
+    triggerFlash: () -> Unit
 ) {
     cameraController.takePicture(
         ContextCompat.getMainExecutor(context),
         object : OnImageCapturedCallback() {
             override fun onCaptureSuccess(image: ImageProxy) {
+                Log.d("MY_TAG", "onCaptureSuccess reached")
                 super.onCaptureSuccess(image)
 
                 val matrix = Matrix().apply {
@@ -306,11 +336,15 @@ private fun takePhoto(
                 )
 
                 onPhotoTaken(rotatedBitmap)
+                image.close()
+
+                triggerFlash()
             }
 
             override fun onError(exception: ImageCaptureException) {
                 super.onError(exception)
                 Log.e("Camera", "Couldn't take photo due to exception: ", exception)
+                Log.d("MY_TAG", "Couldn't take photo due to exception: ", exception)
             }
         }
     )
